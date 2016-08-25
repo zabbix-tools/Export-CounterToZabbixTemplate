@@ -81,173 +81,27 @@ Sets whether Template Items and Item Prototypes will use the Zabbix Agent (Activ
 [Alias("Export-CounterToZabbixTemplate")]
 #[OutputType([String])]
 param(
-    # [Microsoft.PowerShell.Commands.GetCounter.CounterSet[]] # Breaks PSv3+
-    [Parameter(Position = 0, Mandatory = $true, ValueFromPipeline = $true, ValueFromPipelineByPropertyName = $true)] 
-    [Alias('PsPath')]
-    [String[]] $CounterSet       = $null,
-    [String]   $ComputerName     = ".",
-    [String]   $InstanceName     = [System.String]::Empty,
-    [String]   $TemplateName     = [System.String]::Empty,
-    [String]   $TemplateGroup    = "Templates",
-    [Int]      $CheckDelay       = 300,
-    [Int]      $DiscoveryDelay   = 3600,
-    [Int]      $HistoryRetention = 365,
-    [Int]      $TrendsRetention  = 3650,
-    [Switch]   $EnableItems,
-    [Switch]   $ActiveChecks
-);
+    [Parameter(ParameterSetName = "FromCounterSet", Position = 0, Mandatory = $true, ValueFromPipeline = $true)] 
+    [Microsoft.Powershell.Commands.GetCounter.CounterSet]
+    $PSCounterSet = $null,
+
+    [Parameter(ParameterSetName = "FromCounterSetName", Position = 0, Mandatory = $true, ValueFromPipeline = $true)] 
+    [String[]]
+    $CounterSet   = $null,
+
+    [String]    $ComputerName     = ".",
+    [String]    $InstanceName     = [System.String]::Empty,
+    [String]    $TemplateName     = [System.String]::Empty,
+    [String]    $TemplateGroup    = "Templates",
+    [Int]       $CheckDelay       = 60,
+    [Int]       $DiscoveryDelay   = 3600,
+    [Int]       $HistoryRetention = 7,
+    [Int]       $TrendsRetention  = 365,
+    [Switch]    $EnableItems      = $true,
+    [Switch]    $ActiveChecks     = $true
+)
 
 Begin {
-    $counterSets = @();
-
-    # Make sure CounterSet names, a CounterSet filter or piped CounterSet objects have been given
-    # TODO: Use parameter sets instead
-    if ( $PSCounterSets -eq $null -and[System.String]::IsNullOrEmpty($CounterSet) ) {
-        Throw "Missing an argument to parameter 'CounterSet'. Specify a parameter of type 'System.String[]' and try again."
-    }
-}
-
-Process {
-    # Populate the $counterSets array with .Net PerformanceCounterCategories
-    # If no CounterSets were piped, and the user specified a filter:
-    if( $PSCounterSets -Eq $null -And ![System.String]::IsNullOrEmpty($CounterSetFilter) ) {
-        $PSCounterSets = Get-Counter -ComputerName $ComputerName -ListSet $CounterSetFilter -ErrorAction Stop
-    }
-    
-    # If CounterSets were piped or a Filter was successfully fetched, convert to .Net objects
-    if( $PSCounterSets -ne $null ) {
-        # Take a PS GetCounter.CounterSet array and convert them .Net PerformanceCounterCategories
-        foreach($PSCounterSet in $PSCounterSets) {
-            $counterSets += New-Object -TypeName System.Diagnostics.PerformanceCounterCategory -ArgumentList $PSCounterSet.CounterSetName, $ComputerName
-        }
-    }
-    
-    # Fetch CounterSet straight from .Net as specified in -CounterSetNames
-    elseif( $CounterSetNames -ne $null ) {
-        foreach($CounterSetName in $CounterSetNames) {
-            if([System.Diagnostics.PerformanceCounterCategory]::Exists($CounterSetName)) {
-                $counterSets += New-Object -TypeName System.Diagnostics.PerformanceCounterCategory -ArgumentList $CounterSetName, $ComputerName
-            } else {
-                Throw "Counter Set '$CounterSetName' not found.";
-            }
-        }
-    }
-    
-}
-
-End {
-    Function Add-BaseItemDefaults {
-        param(
-            [Parameter(ValueFromPipeline = $true, Position = 0)]
-            [System.Xml.XmlNode]
-            $node
-        );
-        
-        # Common values for Items, Item Prototypes and Discovery Rules
-        $node.AppendChild($xDoc.CreateElement("allowed_hosts"))
-        $node.AppendChild($xDoc.CreateElement("authtype")).InnerText = 0
-        $node.AppendChild($xDoc.CreateElement("delay_flex"))
-        $node.AppendChild($xDoc.CreateElement("ipmi_sensor"))
-        $node.AppendChild($xDoc.CreateElement("params"))
-        $node.AppendChild($xDoc.CreateElement("password"))
-        $node.AppendChild($xDoc.CreateElement("port"))
-        $node.AppendChild($xDoc.CreateElement("privatekey"))
-        $node.AppendChild($xDoc.CreateElement("publickey"))
-        $node.AppendChild($xDoc.CreateElement("snmp_community"))
-        $node.AppendChild($xDoc.CreateElement("snmp_oid"))
-        $node.AppendChild($xDoc.CreateElement("snmpv3_authpassphrase"))
-        $node.AppendChild($xDoc.CreateElement("snmpv3_authprotocol")).InnerText = 0
-        $node.AppendChild($xDoc.CreateElement("snmpv3_contextname"))
-        $node.AppendChild($xDoc.CreateElement("snmpv3_privpassphrase"))
-        $node.AppendChild($xDoc.CreateElement("snmpv3_privprotocol")).InnerText = 0
-        $node.AppendChild($xDoc.CreateElement("snmpv3_securitylevel")).InnerText = 0
-        $node.AppendChild($xDoc.CreateElement("snmpv3_securityname"))
-        $node.AppendChild($xDoc.CreateElement("status")).InnerText = $itemStatus
-        $node.AppendChild($xDoc.CreateElement("type")).InnerText = $itemType
-        $node.AppendChild($xDoc.CreateElement("username"))
-    }
-    
-    Function Add-ItemDefaults($node) {
-        Add-BaseItemDefaults($node);
-    
-        # Default values for standard Template Items
-        $node.AppendChild($xDoc.CreateElement("data_type")).InnerText = 0
-        $node.AppendChild($xDoc.CreateElement("delay")).InnerText = $CheckDelay
-        $node.AppendChild($xDoc.CreateElement("delta")).InnerText = 0
-        $node.AppendChild($xDoc.CreateElement("formula")).InnerText = 1
-        $node.AppendChild($xDoc.CreateElement("history")).InnerText = $HistoryRetention
-        $node.AppendChild($xDoc.CreateElement("inventory_link")).InnerText = 0
-        $node.AppendChild($xDoc.CreateElement("multiplier")).InnerText = 0
-        $node.AppendChild($xDoc.CreateElement("trends")).InnerText = $TrendsRetention
-        $node.AppendChild($xDoc.CreateElement("units"))
-        $node.AppendChild($xDoc.CreateElement("value_type")).InnerText = 0
-        $node.AppendChild($xDoc.CreateElement("valuemap"))
-    }
-    
-    Function Add-DiscoveryRuleDefaults($node) {
-        Add-BaseItemDefaults($node);
-        
-        # Default values for Discovery Rules
-        $node.AppendChild($xDoc.CreateElement("delay")).InnerText = $DiscoveryDelay
-        $node.AppendChild($xDoc.CreateElement("filter")).InnerText = ":"
-        $node.AppendChild($xDoc.CreateElement("lifetime")).InnerText = "30"
-    }
-    
-    Function Add-ItemUnits {
-        param(
-            [Parameter(ValueFromPipeline = $true, Position = 0)]
-            [System.Xml.XmlNode]
-            $node,
-            
-            [System.String]
-            $counterName,
-
-            [System.String]
-            $counterHelp
-        );
-        
-        # Determine unit type by stirng match
-        if($counterName -match "^% ") { $units = "%" }
-        elseif($counterName -match "%") { $units = "%" }
-        elseif($counterName -match "Elapsed Time") { $units = "s" }
-        elseif($counterName -match "Working Set") { $units = "B" }
-        elseif($counterName -match "Commit Limit") { $units = "B" }
-        elseif($counterName -match "TBytes/sec") { $units = "MBps" }
-        elseif($counterName -match "TB/sec") { $units = "MBps" }
-        elseif($counterName -match "GBytes/sec") { $units = "GBps" }
-        elseif($counterName -match "GB/sec") { $units = "GBps" }
-        elseif($counterName -match "MBytes/sec") { $units = "MBps" }
-        elseif($counterName -match "MB/sec") { $units = "MBps" }
-        elseif($counterName -match "KBytes/sec") { $units = "KBps" }
-        elseif($counterName -match "KB/sec") { $units = "KBps" }
-        elseif($counterName -match "Bytes/sec") { $units = "Bps" }
-        elseif($counterName -match "B/sec") { $units = "Bps" }
-        elseif($counterName -match "TBytes") { $units = "TB" }
-        elseif($counterName -match "GBytes") { $units = "GB" }
-        elseif($counterName -match "MBytes") { $units = "MB" }
-        elseif($counterName -match "KBytes") { $units = "KB" }
-        elseif($counterName -match "Bytes") { $units = "B" }
-        elseif($counterName -match "\(s\)") { $units = "s" }
-        elseif($counterName -match "\(sec\)") { $units = "s" }
-        elseif($counterName -match "sec/") { $units = "s" }
-        else { $units = [System.String]::Empty }
-
-        # If the help contains "in milliseconds", "of milliseconds", "in msec", "of msec", "(msec)" then convert to seconds
-        if($counterHelp -match "in milliseconds" -Or $counterHelp -match "of milliseconds" -Or $counterHelp -match "in msec" -Or $counterHelp -match "of msec" -Or $counterHelp -match "(msec)") { $units = "s" }
-        if($counterHelp -match "in milliseconds" -Or $counterHelp -match "of milliseconds" -Or $counterHelp -match "in msec" -Or $counterHelp -match "of msec" -Or $counterHelp -match "(msec)") { $node.SelectSingleNode('description').InnerText = $counterHelp + "`n`nZabbix: Converted Milliseconds To Seconds" }
-        if($counterHelp -match "in milliseconds" -Or $counterHelp -match "of milliseconds" -Or $counterHelp -match "in msec" -Or $counterHelp -match "of msec" -Or $counterHelp -match "(msec)") { $node.SelectSingleNode('formula').InnerText = 0.001 }
-        if($counterHelp -match "in milliseconds" -Or $counterHelp -match "of milliseconds" -Or $counterHelp -match "in msec" -Or $counterHelp -match "of msec" -Or $counterHelp -match "(msec)") { $node.SelectSingleNode('multiplier').InnerText = 1 }
-
-        # If the name contains "in milliseconds", "of milliseconds", "in msec", "of msec", "(msec)" then convert to seconds
-        if($counterName -match "in milliseconds" -Or $counterName -match "of milliseconds" -Or $counterName -match "in msec" -Or $counterName -match "of msec" -Or $counterName -match "(msec)") { $units = "s" }
-        if($counterName -match "in milliseconds" -Or $counterName -match "of milliseconds" -Or $counterName -match "in msec" -Or $counterName -match "of msec" -Or $counterName -match "(msec)") { $node.SelectSingleNode('description').InnerText = $counterHelp + "`n`nZabbix: Converted Milliseconds To Seconds" }
-        if($counterName -match "in milliseconds" -Or $counterName -match "of milliseconds" -Or $counterName -match "in msec" -Or $counterName -match "of msec" -Or $counterName -match "(msec)") { $node.SelectSingleNode('formula').InnerText = 0.001 }
-        if($counterName -match "in milliseconds" -Or $counterName -match "of milliseconds" -Or $counterName -match "in msec" -Or $counterName -match "of msec" -Or $counterName -match "(msec)") { $node.SelectSingleNode('multiplier').InnerText = 1 }
-    
-        $node.SelectSingleNode('units').InnerText = $units;
-        
-    }
-    
     # Zabbix Agent (Active) = 7, Zabbix Agent = 0
     if($ActiveChecks) { $itemType = 7 } else { $itemType = 0 }
 
@@ -258,10 +112,10 @@ End {
     $date = Get-Date -Format u
     
     # Use an Instance Name or Item Discovery?
-    $useInstanceName = ![String]::IsNullOrEmpty($InstanceName);
+    $useInstanceName = ![String]::IsNullOrEmpty($InstanceName)
 
     # Build a list of template applications to be added
-    $applications = @();
+    $applications = @()
     
     # Note to be added to all discovery rules
     $discoveryNote = @"
@@ -269,12 +123,12 @@ End {
 
 * Note *
 This discovery rule requires the 'perf_counter.discovery[]' key to be configured on the remote agent to execute the 'Get-CounterSetInstances.ps1' PowerShell script.
-"@;
+"@
 
     # Create XML Document and root nodes
-    [System.XML.XMLDocument] $xDoc = New-Object System.XML.XMLDocument;
-    $xDoc.CreateXmlDeclaration("1.0", "UTF-8", $null);
+    [System.XML.XMLDocument] $xDoc = New-Object System.XML.XMLDocument
     $xDoc.LoadXml(@"
+<?xml version="1.0" encoding="UTF-8" ?>
 <zabbix_export>
     <version>2.0</version>  
     <date>$date</date>
@@ -302,35 +156,72 @@ This discovery rule requires the 'perf_counter.discovery[]' key to be configured
     </templates>
     <triggers />
 </zabbix_export>
-"@);
+"@)
 
     # Get template node and set name
-    $templateNode     = $xDoc.SelectSingleNode("/zabbix_export/templates/template");
-    $applicationsNode = $templateNode.SelectSingleNode("applications");
-    $itemsNode        = $templateNode.SelectSingleNode("items");
-    $discRulesNode    = $templateNode.SelectSingleNode("discovery_rules");
-    $macrosNode       = $templateNode.SelectSingleNode("macros");
-    
+    $templateNode     = $xDoc.SelectSingleNode("/zabbix_export/templates/template")
+    $applicationsNode = $templateNode.SelectSingleNode("applications")
+    $itemsNode        = $templateNode.SelectSingleNode("items")
+    $discRulesNode    = $templateNode.SelectSingleNode("discovery_rules")
+    $macrosNode       = $templateNode.SelectSingleNode("macros")
+}
+
+Process {
+    Function Export-PSCounterSet {
+        param(
+            [Parameter(ValueFromPipeline = $true, Position = 0)]
+            [System.Xml.Node] $XmlNode
+
+            [Parameter(Position = 1)]
+            $CounterSet
+        )
+
+        # TODO: check .Net counter set exists with[System.Diagnostics.PerformanceCounterCategory]::Exists
+        $dotnetCounterSet = New-Object -TypeName System.Diagnostics.PerformanceCounterCategory -ArgumentList $set.CounterSetName, $ComputerName
+        
+
+    }
+
+    # if counter set name/s were given as strings
+    if ($PSCounterSet -eq $null) {
+        foreach ($cset in $CounterSet) {
+            # use Get-Counter in case the requested set is actually a search pattern recognised by Get-Counter
+            $PSCounterSet = Get-Counter -ListSet $cset
+
+            # TODO: error handle on $null
+
+            Export-PSCounterSet -XmlNode -CounterSet $PSCounterSet
+        }
+        
+    } else {
+        # counter set objects piped from Get-Counter -ListSet
+        foreach($cset in $PSCounterSet) {
+            Export-PSCounterSet $cset
+        }
+    }
+}
+
+End {    
     # Parse counters as items
-    $includedSets = @();
+    $includedSets = @()
     foreach($counterSet in $counterSets) {
-        $includedSets += $counterSet.CategoryName;
+        $includedSets += $counterSet.CategoryName
         
         # Add a Template Application for this set
         if($useInstanceName) {
-            $appname   = $counterSet.CategoryName + ' (' + $InstanceName + ')';
-            $macroName = $counterSet.CategoryName.ToUpper() -replace '\s+', '_';
+            $appname   = $counterSet.CategoryName + ' (' + $InstanceName + ')'
+            $macroName = $counterSet.CategoryName.ToUpper() -replace '\s+', '_'
         } else {
             $appName   = $counterSet.CategoryName
         }
 
-        $applications += $appName;
+        $applications += $appName
 
         # Single instance counters are simply Template Items and don't require discovery
         if($counterSet.CategoryType -eq "SingleInstance" -or $useInstanceName) {
-            $items = @{};
-            $counters = @();
-            $counters = $counterSet.GetCounters();
+            $items = @{}
+            $counters = @()
+            $counters = $counterSet.GetCounters()
 
             foreach($counter in $counters) {
                 # If the counter name is "No name", "Not displayed" or matches the category name then skip the
@@ -352,7 +243,7 @@ This discovery rule requires the 'perf_counter.discovery[]' key to be configured
             # For every item
             foreach ($item in $items.keys) {
                 $itemNode = $xDoc.CreateElement("item")     
-                Add-ItemDefaults($itemNode);
+                Add-ItemDefaults($itemNode)
 
                 # Derived Values
                 $itemNode.AppendChild($xDoc.CreateElement("key")).InnerText = "perf_counter[""\" + $items[$item]["CounterSet"] + "\" + $items[$item]["CounterName"] + """]"
@@ -360,16 +251,16 @@ This discovery rule requires the 'perf_counter.discovery[]' key to be configured
                 $itemNode.AppendChild($xDoc.CreateElement("description")).InnerText = $items[$item]["CounterHelp"]
                 
                 # Add unit type
-                Add-ItemUnits -node $itemNode -counterName $items[$item]["CounterName"] -counterHelp $items[$item]["CounterHelp"];
+                Add-ItemUnits -node $itemNode -counterName $items[$item]["CounterName"] -counterHelp $items[$item]["CounterHelp"]
                 
                 # Add item to Application
-                $itemNode.AppendChild($xDoc.CreateElement("applications"));
-                $voidNode.AppendChild($xDoc.CreateElement("application"));
-                $voidNode.AppendChild($xDoc.CreateElement("name")).InnerText = $appName;
+                $itemNode
+                    .AppendChild($xDoc.CreateElement("applications"))
+                    .AppendChild($xDoc.CreateElement("application"))
+                    .AppendChild($xDoc.CreateElement("name")).InnerText = $appName
                 
                 # Append item
-                $itemNode = $itemsNode.AppendChild($itemNode);
-                
+                $itemNode = $itemsNode.AppendChild($itemNode);                
             }
             
         }
@@ -378,10 +269,10 @@ This discovery rule requires the 'perf_counter.discovery[]' key to be configured
         elseif($counterSet.CategoryType -eq "MultiInstance") {
 
             # Create empty list for items
-            $items = @{};
+            $items = @{}
 
             # Get counter sets instances
-            $instances = $counterSet.GetInstanceNames();
+            $instances = $counterSet.GetInstanceNames()
 
             # If there are instances
             if($instances) {
@@ -390,7 +281,7 @@ This discovery rule requires the 'perf_counter.discovery[]' key to be configured
                 foreach($instance in $instances) {
 
                     # Create a list of .Net Counters
-                    $counters = @();
+                    $counters = @()
 
                     # Get the counters for the instance
                     $counters = $counterSet.GetCounters($instance)
@@ -422,10 +313,10 @@ This discovery rule requires the 'perf_counter.discovery[]' key to be configured
             else {
 
                 # Create a list of .Net Counters
-                $counters = @();
+                $counters = @()
 
                 # Get the counters for the instance
-                $counters = $counterSet.GetCounters();
+                $counters = $counterSet.GetCounters()
 
                 # For every counter
                 foreach($counter in $counters) {
@@ -454,22 +345,22 @@ This discovery rule requires the 'perf_counter.discovery[]' key to be configured
             }
 
             # Create the discovery rule
-            $discNode = $xDoc.CreateElement("discovery_rule");
-            Add-DiscoveryRuleDefaults($discNode);
+            $discNode = $xDoc.CreateElement("discovery_rule")
+            Add-DiscoveryRuleDefaults($discNode)
             
             # Derived Values for discovery rule
-            $discNode.AppendChild($xDoc.CreateElement("name")).InnerText = $counterSet.CategoryName + " Performance Counter Discovery";
-            $discNode.AppendChild($xDoc.CreateElement("key")).InnerText = "perf_counter.discovery[" + $counterSet.CategoryName + "]";
-            $discNode.AppendChild($xDoc.CreateElement("description")).InnerText = $counterSet.CategoryHelp + $discoveryNote;
+            $discNode.AppendChild($xDoc.CreateElement("name")).InnerText = $counterSet.CategoryName + " Performance Counter Discovery"
+            $discNode.AppendChild($xDoc.CreateElement("key")).InnerText = "perf_counter.discovery[" + $counterSet.CategoryName + "]"
+            $discNode.AppendChild($xDoc.CreateElement("description")).InnerText = $counterSet.CategoryHelp + $discoveryNote
 
             # Create prototype for each counter in this set
-            $discItemProtosNode = $discNode.AppendChild($xDoc.CreateElement("item_prototypes"));
+            $discItemProtosNode = $discNode.AppendChild($xDoc.CreateElement("item_prototypes"))
 
             # For every item
             foreach ($item in $items.keys) {
             
                 $protoItemNode = $xDoc.CreateElement("item_prototype")      
-                Add-ItemDefaults($protoItemNode);
+                Add-ItemDefaults($protoItemNode)
 
                 # Derived Values
                 $protoItemNode.AppendChild($xDoc.CreateElement("key")).InnerText = "perf_counter[""\" + $items[$item]["CounterSet"] + "({#INSTANCE})\" + $items[$item]["CounterName"] + """]"
@@ -477,15 +368,15 @@ This discovery rule requires the 'perf_counter.discovery[]' key to be configured
                 $protoItemNode.AppendChild($xDoc.CreateElement("description")).InnerText = $items[$item]["CounterHelp"]
                 
                 # Add unit type
-                #Add-ItemUnits -node $protoItemNode -counterName $counter.CounterName -counterHelp $counter.CounterHelp;
-                Add-ItemUnits -node $protoItemNode -counterName $items[$item]["CounterName"] -counterHelp $items[$item]["CounterHelp"];
+                #Add-ItemUnits -node $protoItemNode -counterName $counter.CounterName -counterHelp $counter.CounterHelp
+                Add-ItemUnits -node $protoItemNode -counterName $items[$item]["CounterName"] -counterHelp $items[$item]["CounterHelp"]
                 
                 # Add item to Application
-                $protoItemNode.AppendChild($xDoc.CreateElement("applications"));
-                $voidNode.AppendChild($xDoc.CreateElement("application"));
-                $voidNode.AppendChild($xDoc.CreateElement("name")).InnerText = $appName;
+                $protoItemNode.AppendChild($xDoc.CreateElement("applications"))
+                $voidNode.AppendChild($xDoc.CreateElement("application"))
+                $voidNode.AppendChild($xDoc.CreateElement("name")).InnerText = $appName
                 
-                $protoItemNode = $discItemProtosNode.AppendChild($protoItemNode);
+                $protoItemNode = $discItemProtosNode.AppendChild($protoItemNode)
 
             }
             
@@ -498,26 +389,27 @@ This discovery rule requires the 'perf_counter.discovery[]' key to be configured
     
     # Add applications to template
     foreach($application in $applications) {
-        $applicationsNode.AppendChild($xDoc.CreateElement("application"));
-        $voidNode.AppendChild($xDoc.CreateElement("name")).InnerText = $application;
+        $applicationsNode.AppendChild($xDoc.CreateElement("application")).
+            AppendChild($xDoc.CreateElement("name")).
+            InnerText = $application
     }
     
     # Add list of counter sets as a macro (Removed as most times the value for the macro was too long, and the set can be obtained by the application name)
-    #$macroNode = $macrosNode.AppendChild($xDoc.CreateElement("macro"));
-    #$macroNode.AppendChild($xDoc.CreateElement("macro")).InnerText = "{`$COUNTER_SETS}";
-    #$macroNode.AppendChild($xDoc.CreateElement("value")).InnerText = '"' + ([String]::Join('","', $includedSets)) + '"';
+    #$macroNode = $macrosNode.AppendChild($xDoc.CreateElement("macro"))
+    #$macroNode.AppendChild($xDoc.CreateElement("macro")).InnerText = "{`$COUNTER_SETS}"
+    #$macroNode.AppendChild($xDoc.CreateElement("value")).InnerText = '"' + ([String]::Join('","', $includedSets)) + '"'
     
     # Add instance name macro (Removed as most times the value for the macro was too long, and the set can be obtained by the application name)
     #if($useInstanceName) {
-        #$macroNode = $macrosNode.AppendChild($xDoc.CreateElement("macro"));
-        #$macroNode.AppendChild($xDoc.CreateElement("macro")).InnerText = '{$' + $macroName + '}';
-        #$macroNode.AppendChild($xDoc.CreateElement("value")).InnerText = $InstanceName;
+        #$macroNode = $macrosNode.AppendChild($xDoc.CreateElement("macro"))
+        #$macroNode.AppendChild($xDoc.CreateElement("macro")).InnerText = '{$' + $macroName + '}'
+        #$macroNode.AppendChild($xDoc.CreateElement("value")).InnerText = $InstanceName
     #}
     
     # Set template name
     if([System.String]::IsNullOrEmpty($TemplateName)) {
         if($ComputerName -eq '.') { $hostname = hostname } else { $hostname = $ComputerName }
-        $TemplateName = 'Template Performance Counters from ' + $hostname;
+        $TemplateName = 'Template Performance Counters from ' + $hostname
     }
     $templateNode.SelectSingleNode("name").InnerText = $TemplateName
     $templateNode.SelectSingleNode("template").InnerText = $TemplateName
@@ -526,9 +418,9 @@ This discovery rule requires the 'perf_counter.discovery[]' key to be configured
     [System.IO.StringWriter] $stream = New-Object System.IO.StringWriter
 
     # Save the XML with pretty formatting to the stream
-    $xDoc.Save($stream);
-    $stream.Close();
+    $xDoc.Save($stream)
+    $stream.Close()
     
     # Output to console or next command in a pipeline
-    Write-Output $stream.ToString();
+    Write-Output $stream.ToString()
 }

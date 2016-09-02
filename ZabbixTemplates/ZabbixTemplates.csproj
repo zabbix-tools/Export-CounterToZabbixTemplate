@@ -47,6 +47,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ApplicationSet.cs" />
+    <Compile Include="DiscoveryRule.cs" />
     <Compile Include="GroupSet.cs" />
     <Compile Include="Item.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

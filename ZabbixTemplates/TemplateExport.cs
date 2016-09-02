@@ -80,6 +80,7 @@
                     var itemNode = itemsNode.AppendChild(doc.CreateElement("item"));
 
                     itemNode.AppendChild(doc.CreateElement("name")).InnerText = item.Name;
+                    itemNode.AppendChild(doc.CreateElement("description")).InnerText = item.Description;
                     itemNode.AppendChild(doc.CreateElement("type")).InnerText = ((int)item.ItemType).ToString();
                     itemNode.AppendChild(doc.CreateElement("key")).InnerText = item.Key;
                     itemNode.AppendChild(doc.CreateElement("delay")).InnerText = item.Delay.ToString();
@@ -92,6 +93,135 @@
                     foreach (var app in item.Applications)
                     {
                         itemApplicationsNode.AppendChild(doc.CreateElement("application")).AppendChild(doc.CreateElement("name")).InnerText = app;
+                    }
+
+                    // dummy values
+                    itemNode.AppendChild(doc.CreateElement("allowed_hosts"));
+                    itemNode.AppendChild(doc.CreateElement("authtype")).InnerText = "0";
+                    itemNode.AppendChild(doc.CreateElement("data_type")).InnerText = "0";
+                    itemNode.AppendChild(doc.CreateElement("delay_flex"));
+                    itemNode.AppendChild(doc.CreateElement("delta")).InnerText = "0";
+                    itemNode.AppendChild(doc.CreateElement("formula")).InnerText = "1";
+                    itemNode.AppendChild(doc.CreateElement("inventory_link")).InnerText = "0";
+                    itemNode.AppendChild(doc.CreateElement("ipmi_sensor"));
+                    itemNode.AppendChild(doc.CreateElement("logtimefmt"));
+                    itemNode.AppendChild(doc.CreateElement("multiplier")).InnerText = "0";
+                    itemNode.AppendChild(doc.CreateElement("params"));
+                    itemNode.AppendChild(doc.CreateElement("password"));
+                    itemNode.AppendChild(doc.CreateElement("port"));
+                    itemNode.AppendChild(doc.CreateElement("privatekey"));
+                    itemNode.AppendChild(doc.CreateElement("publickey"));
+                    itemNode.AppendChild(doc.CreateElement("snmp_community"));
+                    itemNode.AppendChild(doc.CreateElement("snmp_oid"));
+                    itemNode.AppendChild(doc.CreateElement("snmpv3_authpassphrase"));
+                    itemNode.AppendChild(doc.CreateElement("snmpv3_authprotocol")).InnerText = "0";
+                    itemNode.AppendChild(doc.CreateElement("snmpv3_contextname"));
+                    itemNode.AppendChild(doc.CreateElement("snmpv3_privpassphrase"));
+                    itemNode.AppendChild(doc.CreateElement("snmpv3_privprotocol")).InnerText = "0";
+                    itemNode.AppendChild(doc.CreateElement("snmpv3_securitylevel")).InnerText = "0";
+                    itemNode.AppendChild(doc.CreateElement("snmpv3_securityname"));
+                    itemNode.AppendChild(doc.CreateElement("units"));
+                    itemNode.AppendChild(doc.CreateElement("username"));
+                    itemNode.AppendChild(doc.CreateElement("value_type")).InnerText = "0";
+                    itemNode.AppendChild(doc.CreateElement("valuemap"));
+                }
+
+                // append Discovery rules
+                var discoveryRulesNode = templateNode.AppendChild(doc.CreateElement("discovery_rules"));
+                foreach (var discoveryRule in template.DiscoveryRules)
+                {
+                    var discoveryRuleNode = discoveryRulesNode.AppendChild(doc.CreateElement("discovery_rule"));
+
+                    discoveryRuleNode.AppendChild(doc.CreateElement("name")).InnerText = discoveryRule.Name;
+                    discoveryRuleNode.AppendChild(doc.CreateElement("description")).InnerText = discoveryRule.Description;
+                    discoveryRuleNode.AppendChild(doc.CreateElement("type")).InnerText = ((int)discoveryRule.ItemType).ToString();
+                    discoveryRuleNode.AppendChild(doc.CreateElement("key")).InnerText = discoveryRule.Key;
+                    discoveryRuleNode.AppendChild(doc.CreateElement("delay")).InnerText = discoveryRule.Delay.ToString();
+                    discoveryRuleNode.AppendChild(doc.CreateElement("status")).InnerText = ((int)discoveryRule.Status).ToString();
+                    discoveryRuleNode.AppendChild(doc.CreateElement("lifetime")).InnerText = ((int)discoveryRule.Lifetime).ToString();
+
+                    discoveryRuleNode.AppendChild(doc.CreateElement("trigger_prototypes"));
+                    discoveryRuleNode.AppendChild(doc.CreateElement("graph_prototypes"));
+                    discoveryRuleNode.AppendChild(doc.CreateElement("host_prototypes"));
+
+                    // dummy values
+                    discoveryRuleNode.AppendChild(doc.CreateElement("allowed_hosts"));
+                    discoveryRuleNode.AppendChild(doc.CreateElement("authtype")).InnerText = "0";
+                    discoveryRuleNode.AppendChild(doc.CreateElement("delay_flex"));
+                    discoveryRuleNode.AppendChild(doc.CreateElement("ipmi_sensor"));
+                    discoveryRuleNode.AppendChild(doc.CreateElement("params"));
+                    discoveryRuleNode.AppendChild(doc.CreateElement("password"));
+                    discoveryRuleNode.AppendChild(doc.CreateElement("port"));
+                    discoveryRuleNode.AppendChild(doc.CreateElement("privatekey"));
+                    discoveryRuleNode.AppendChild(doc.CreateElement("publickey"));
+                    discoveryRuleNode.AppendChild(doc.CreateElement("snmp_community"));
+                    discoveryRuleNode.AppendChild(doc.CreateElement("snmp_oid"));
+                    discoveryRuleNode.AppendChild(doc.CreateElement("snmpv3_authpassphrase"));
+                    discoveryRuleNode.AppendChild(doc.CreateElement("snmpv3_authprotocol")).InnerText = "0";
+                    discoveryRuleNode.AppendChild(doc.CreateElement("snmpv3_contextname"));
+                    discoveryRuleNode.AppendChild(doc.CreateElement("snmpv3_privpassphrase"));
+                    discoveryRuleNode.AppendChild(doc.CreateElement("snmpv3_privprotocol")).InnerText = "0";
+                    discoveryRuleNode.AppendChild(doc.CreateElement("snmpv3_securitylevel")).InnerText = "0";
+                    discoveryRuleNode.AppendChild(doc.CreateElement("snmpv3_securityname"));
+                    discoveryRuleNode.AppendChild(doc.CreateElement("username"));
+
+                    var filterNode = discoveryRuleNode.AppendChild(doc.CreateElement("filter"));
+                    filterNode.AppendChild(doc.CreateElement("evaltype")).InnerText = "0";
+                    filterNode.AppendChild(doc.CreateElement("formula"));
+                    filterNode.AppendChild(doc.CreateElement("conditions"));
+
+
+                    var itemPrototypesNode = discoveryRuleNode.AppendChild(doc.CreateElement("item_prototypes"));
+                    foreach (var itemPrototype in discoveryRule.ItemPrototypes)
+                    {
+                        var itemPrototypeNode = itemPrototypesNode.AppendChild(doc.CreateElement("item_prototype"));
+
+                        itemPrototypeNode.AppendChild(doc.CreateElement("name")).InnerText = itemPrototype.Name;
+                        itemPrototypeNode.AppendChild(doc.CreateElement("description")).InnerText = itemPrototype.Description;
+                        itemPrototypeNode.AppendChild(doc.CreateElement("type")).InnerText = ((int)itemPrototype.ItemType).ToString();
+                        itemPrototypeNode.AppendChild(doc.CreateElement("key")).InnerText = itemPrototype.Key;
+                        itemPrototypeNode.AppendChild(doc.CreateElement("delay")).InnerText = itemPrototype.Delay.ToString();
+                        itemPrototypeNode.AppendChild(doc.CreateElement("history")).InnerText = itemPrototype.History.ToString();
+                        itemPrototypeNode.AppendChild(doc.CreateElement("trends")).InnerText = itemPrototype.Trends.ToString();
+                        itemPrototypeNode.AppendChild(doc.CreateElement("status")).InnerText = ((int)itemPrototype.Status).ToString();
+
+                        // append item applications
+                        var itemApplicationsNode = itemPrototypeNode.AppendChild(doc.CreateElement("applications"));
+                        foreach (var app in itemPrototype.Applications)
+                        {
+                            itemApplicationsNode.AppendChild(doc.CreateElement("application")).AppendChild(doc.CreateElement("name")).InnerText = app;
+                        }
+
+                        // dummy values
+                        itemPrototypeNode.AppendChild(doc.CreateElement("allowed_hosts"));
+                        itemPrototypeNode.AppendChild(doc.CreateElement("application_prototypes"));
+                        itemPrototypeNode.AppendChild(doc.CreateElement("authtype")).InnerText = "0";
+                        itemPrototypeNode.AppendChild(doc.CreateElement("data_type")).InnerText = "0";
+                        itemPrototypeNode.AppendChild(doc.CreateElement("delay_flex"));
+                        itemPrototypeNode.AppendChild(doc.CreateElement("delta")).InnerText = "0";
+                        itemPrototypeNode.AppendChild(doc.CreateElement("formula")).InnerText = "1";
+                        itemPrototypeNode.AppendChild(doc.CreateElement("inventory_link")).InnerText = "0";
+                        itemPrototypeNode.AppendChild(doc.CreateElement("ipmi_sensor"));
+                        itemPrototypeNode.AppendChild(doc.CreateElement("logtimefmt"));
+                        itemPrototypeNode.AppendChild(doc.CreateElement("multiplier")).InnerText = "0";
+                        itemPrototypeNode.AppendChild(doc.CreateElement("params"));
+                        itemPrototypeNode.AppendChild(doc.CreateElement("password"));
+                        itemPrototypeNode.AppendChild(doc.CreateElement("port"));
+                        itemPrototypeNode.AppendChild(doc.CreateElement("privatekey"));
+                        itemPrototypeNode.AppendChild(doc.CreateElement("publickey"));
+                        itemPrototypeNode.AppendChild(doc.CreateElement("snmp_community"));
+                        itemPrototypeNode.AppendChild(doc.CreateElement("snmp_oid"));
+                        itemPrototypeNode.AppendChild(doc.CreateElement("snmpv3_authpassphrase"));
+                        itemPrototypeNode.AppendChild(doc.CreateElement("snmpv3_authprotocol")).InnerText = "0";
+                        itemPrototypeNode.AppendChild(doc.CreateElement("snmpv3_contextname"));
+                        itemPrototypeNode.AppendChild(doc.CreateElement("snmpv3_privpassphrase"));
+                        itemPrototypeNode.AppendChild(doc.CreateElement("snmpv3_privprotocol")).InnerText = "0";
+                        itemPrototypeNode.AppendChild(doc.CreateElement("snmpv3_securitylevel")).InnerText = "0";
+                        itemPrototypeNode.AppendChild(doc.CreateElement("snmpv3_securityname"));
+                        itemPrototypeNode.AppendChild(doc.CreateElement("units"));
+                        itemPrototypeNode.AppendChild(doc.CreateElement("username"));
+                        itemPrototypeNode.AppendChild(doc.CreateElement("value_type")).InnerText = "0";
+                        itemPrototypeNode.AppendChild(doc.CreateElement("valuemap"));
                     }
                 }
             }

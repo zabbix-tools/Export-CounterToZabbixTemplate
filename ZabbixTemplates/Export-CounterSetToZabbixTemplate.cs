@@ -18,6 +18,7 @@
         private string _templateGroup = "Templates";
         private int _checkDelay = 60;
         private int _discoveryDelay = 3600;
+        private int _discoveryLifetime = 30;
         private int _historyRetention = 7;
         private int _trendsRetention = 365;
         private bool _enableItems = true;
@@ -73,6 +74,13 @@
         {
             get { return _discoveryDelay; }
             set { _discoveryDelay = value; }
+        }
+
+        [Parameter()]
+        public int DiscoveryLifetime
+        {
+            get { return _discoveryLifetime; }
+            set { _discoveryLifetime = value; }
         }
 
         [Parameter()]
@@ -144,10 +152,8 @@
                 {
                     foreach (var pdhCounter in pdhCategory.GetCounters())
                     {
-                        var item = new Item
+                        var item = new Item(pdhCounter, InstanceName)
                         {
-                            Name = pdhCounter.CounterName,
-                            Description = pdhCounter.CounterHelp,
                             ItemType = ActiveChecks ? ItemType.ZabbixAgentActive : ItemType.ZabbixAgent,
                             Status = EnableItems ? ItemStatus.Enabled: ItemStatus.Disabled,
                             Delay = CheckDelay,
@@ -159,6 +165,30 @@
 
                         _template.Items.Add(item);
                     }
+                }
+
+                else
+                {
+                    var discoveryRule = new DiscoveryRule(pdhCategory)
+                    {
+                        ItemType = ActiveChecks ? ItemType.ZabbixAgentActive : ItemType.ZabbixAgent,
+                        Status = EnableItems ? ItemStatus.Enabled : ItemStatus.Disabled,
+                        Delay = DiscoveryDelay,
+                        Lifetime = DiscoveryLifetime,
+                    };
+
+                    // configure item prototypes
+                    foreach (var item in discoveryRule.ItemPrototypes)
+                    {                        
+                        item.ItemType = ActiveChecks ? ItemType.ZabbixAgentActive : ItemType.ZabbixAgent;
+                        item.Status = EnableItems ? ItemStatus.Enabled: ItemStatus.Disabled;
+                        item.Delay = CheckDelay;
+                        item.History = HistoryRetention;
+                        item.Trends = TrendsRetention;
+                        item.Applications.Add(appName);
+                    }
+
+                    _template.DiscoveryRules.Add(discoveryRule);
                 }
             }
         }

@@ -1,6 +1,8 @@
 ﻿namespace ZabbixTemplates
 {
+    using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
 
     public class Item
     {
@@ -9,6 +11,14 @@
             Applications = new ApplicationSet();
         }
 
+        public Item (PerformanceCounter pdhCounter, String instanceName = "") : this() {
+            Name = pdhCounter.CounterName;
+            Description = pdhCounter.CounterHelp;
+            Key = String.IsNullOrEmpty(instanceName) ? 
+                String.Format(@"perf_counter[""\{0}\{1}""]", pdhCounter.CategoryName, pdhCounter.CounterName) :
+                String.Format(@"perf_counter[""\{0} ({1})\{2}""]", pdhCounter.CategoryName, instanceName, pdhCounter.CounterName);
+        }
+        
         private int _delay = 60;
         private int _history = 7;
         private int _trends = 365;
@@ -39,10 +49,10 @@
         }
     }
 
-    public class ItemCollection : List<Item> {
+    public class ItemCollection : List<Item>
+    {
         public ItemCollection() : base() { }
     }
-
 
     public enum ItemType {
         ZabbixAgent = 0,

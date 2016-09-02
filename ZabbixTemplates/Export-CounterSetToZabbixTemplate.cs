@@ -152,18 +152,21 @@
                 {
                     foreach (var pdhCounter in pdhCategory.GetCounters())
                     {
-                        var item = new Item(pdhCounter, InstanceName)
+                        if (pdhCounter.IsValidForExport())
                         {
-                            ItemType = ActiveChecks ? ItemType.ZabbixAgentActive : ItemType.ZabbixAgent,
-                            Status = EnableItems ? ItemStatus.Enabled: ItemStatus.Disabled,
-                            Delay = CheckDelay,
-                            History = HistoryRetention,
-                            Trends = TrendsRetention,
-                        };
+                            var item = new Item(pdhCounter, InstanceName)
+                            {
+                                ItemType = ActiveChecks ? ItemType.ZabbixAgentActive : ItemType.ZabbixAgent,
+                                Status = EnableItems ? ItemStatus.Enabled : ItemStatus.Disabled,
+                                Delay = CheckDelay,
+                                History = HistoryRetention,
+                                Trends = TrendsRetention,
+                            };
 
-                        item.Applications.Add(appName);
+                            item.Applications.Add(appName);
 
-                        _template.Items.Add(item);
+                            _template.Items.Add(item);
+                        }
                     }
                 }
 

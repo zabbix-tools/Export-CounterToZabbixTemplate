@@ -34,7 +34,8 @@ This discovery rule requires the 'perf_counter.discovery[]' key to be configured
                 {
                     foreach (var pdhCounter in pdhCategory.GetCounters(instance))
                     {
-                        counters[pdhCounter.CounterName] = pdhCounter;
+                        if(pdhCounter.IsValidForExport())
+                            counters[pdhCounter.CounterName] = pdhCounter;
                     }
                 }
             }
@@ -42,7 +43,8 @@ This discovery rule requires the 'perf_counter.discovery[]' key to be configured
             {
                 foreach (var pdhCounter in pdhCategory.GetCounters())
                 {
-                    counters[pdhCounter.CounterName] = pdhCounter;
+                    if(pdhCounter.IsValidForExport())
+                        counters[pdhCounter.CounterName] = pdhCounter;
                 }
 
             }

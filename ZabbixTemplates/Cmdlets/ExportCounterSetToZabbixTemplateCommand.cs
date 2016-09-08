@@ -1,11 +1,12 @@
-﻿namespace ZabbixTemplates
+﻿namespace Cmdlets
 {
     using System;
     using System.Diagnostics;
     using System.Management.Automation;
+    using ZabbixTemplates;
 
     [Cmdlet(VerbsData.Export, "CounterSetToZabbixTemplate")]
-    public class TestCmdlet : Cmdlet
+    public class ExportCounterSetToZabbixTemplateCommand : Cmdlet
     {
         #region Private fields
 
